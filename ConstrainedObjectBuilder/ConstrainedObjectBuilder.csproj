@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>ConstrainedObjectBuilder</RootNamespace>
+    <AssemblyName>ConstrainedObjectBuilder</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Decider" Version="0.3.7" />
+  </ItemGroup>
+
+</Project>
