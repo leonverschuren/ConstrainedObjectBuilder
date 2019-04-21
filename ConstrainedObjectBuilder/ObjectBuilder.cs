@@ -12,24 +12,14 @@ namespace ConstrainedObjectBuilder
         protected IDictionary<PropertyInfo, VariableInteger> Variables { get; } = new Dictionary<PropertyInfo, VariableInteger>();
         protected IList<IConstraint> Constraints { get; } = new List<IConstraint>();
 
-        public ObjectBuilder<T> ShouldBeGreater<TValue>(System.Linq.Expressions.Expression<Func<T, TValue>> expression1, System.Linq.Expressions.Expression<Func<T, TValue>> expression2)
-        {
-            VariableInteger variable1 = CreateVariable(expression1.Body);
-            VariableInteger variable2 = CreateVariable(expression2.Body);
-
-            Constraints.Add(new ConstraintInteger(variable1 > variable2));
-
-            return this;
-        }
-
         public ObjectBuilder<T> Constraint(System.Linq.Expressions.Expression<Func<T, bool>> expression)
         {
             if (expression.Body is BinaryExpression binaryExpression)
             {
-                var variable1 = CreateVariable(binaryExpression.Left);
-                var variable2 = CreateVariable(binaryExpression.Right);
+                var left = CreateExpression(binaryExpression.Left);
+                var right = CreateExpression(binaryExpression.Right);
 
-                var variableIntegerExpression = Expression.MakeBinary(binaryExpression.NodeType, Create(variable1), Create(variable2));
+                var variableIntegerExpression = Expression.MakeBinary(binaryExpression.NodeType, left, right);
 
                 var result = Expression.Lambda(variableIntegerExpression).Compile().DynamicInvoke();
                 Constraints.Add(new ConstraintInteger((ExpressionInteger)result));
@@ -40,21 +30,36 @@ namespace ConstrainedObjectBuilder
             throw new ArgumentException();
         }
 
-        private static Expression Create(VariableInteger variableInteger) => Expression.Constant(variableInteger, typeof(ExpressionInteger));
-
-        private VariableInteger CreateVariable(Expression expression)
+        private Expression CreateExpression(Expression input)
         {
-            if (expression is MemberExpression memberSelectorExpression && memberSelectorExpression.Member is PropertyInfo property)
+            if (input is MemberExpression memberExpression && memberExpression.Member is PropertyInfo property)
             {
-                if (!Variables.ContainsKey(property))
-                {
-                    Variables.Add(property, new VariableInteger(property.Name, 0, 9));
-                }
+                VariableInteger variable1 = CreateVariable(property);
 
-                return Variables[property];
+                return Expression.Constant(variable1, typeof(ExpressionInteger));
             }
 
-            throw new ArgumentException(nameof(expression));
+            object value = Expression.Lambda(input).Compile().DynamicInvoke();
+
+            switch (value)
+            {
+                case DateTime date:
+                    return Expression.Constant((ExpressionInteger)DateHelper.ToInt(date), typeof(ExpressionInteger));
+                case int number:
+                    return Expression.Constant((ExpressionInteger)number, typeof(ExpressionInteger));
+            }
+
+            throw new ArgumentException(nameof(input));
+        }
+
+        private VariableInteger CreateVariable(PropertyInfo property)
+        {
+            if (!Variables.ContainsKey(property))
+            {
+                Variables.Add(property, new VariableInteger(property.Name, 0, 9));
+            }
+
+            return Variables[property];
         }
 
         public abstract T Build();

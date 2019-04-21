@@ -7,5 +7,6 @@ namespace ConstrainedObjectBuilder.UnitTests
         public DateTime Date1 { get; set; }
         public DateTime Date2 { get; set; }
         public DateTime Date3 { get; set; }
+        public int Number1 { get; set; }
     }
 }
